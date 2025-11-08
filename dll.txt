@@ -8,7 +8,7 @@ int main(){
     cout<<"addition: "<<add(2,3)<<endl;
     cout<<"subtraction: "<<sub(4,2)<<endl;
     cout<<"multiplication: "<<mul(3,5)<<endl;
-    cout<<"div: "<<div(3.1,2.4)<<endl;
+    cout<<"divd: "<<divd(3.1,2.4)<<endl;
     cout<<"square: "<<sq(2)<<endl;
 
     return 0;
@@ -24,7 +24,7 @@ int sub(int a, int b){
     return (a-b);
 }
 
-float div(float a, float b){
+float divd(float a, float b){
     return(a/b);
 }
 int mul(int a ,int b){ 
@@ -42,7 +42,7 @@ extern "C"{
 
     int add(int a, int b);
     int sub(int a, int b);
-    float div(float a, float b);
+    float divd(float a, float b);
     int mul(int a, int b);
     int sq(int a);
     #ifdef __cplusplus
