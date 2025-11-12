@@ -51,6 +51,7 @@ extern "C"{
 
 4 - output 
 
-g++ -c mathlib.cpp -o mathlib.o
-g++ -shared -o mathlib.dll  mathlib.o
-g++ main.cpp -o main.exe -L. -lmathlib
+g++ -fPIC -c MathLibrary.cpp -o MathLibrary.o
+g++ -shared -o libmath.so MathLibrary.o
+g++ main.cpp -L. -lmath -o main
+LD_LIBRARY_PATH=. ./main
