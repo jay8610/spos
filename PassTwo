@@ -1,0 +1,68 @@
+import java.io.*;
+import java.util.*;
+
+public class PassTwo {
+    public static void main(String[] args) throws Exception {
+        BufferedReader ic = new BufferedReader(new FileReader("ic.txt"));
+        BufferedReader sym = new BufferedReader(new FileReader("symboltable.txt"));
+        BufferedReader lit = new BufferedReader(new FileReader("literaltable.txt"));
+
+        List<String[]> symtab = new ArrayList<>();
+        List<String[]> littab = new ArrayList<>();
+
+        String line;
+        while ((line = sym.readLine()) != null)
+            if (!line.trim().isEmpty()) symtab.add(line.trim().split("\\s+"));
+        while ((line = lit.readLine()) != null)
+            if (!line.trim().isEmpty()) littab.add(line.trim().split("\\s+"));
+
+        System.out.println("Machine Code:");
+        while ((line = ic.readLine()) != null) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            if (line.contains("AD")) continue;     // skip assembler directives
+            if (line.contains("DL,02")) continue;  // skip DS
+
+            String[] parts = line.replaceAll("[()]", "").split("\\s+|,");
+            if (parts[0].equals("DL") && parts[1].equals("01")) { // DC
+                System.out.println("00\t00\t" + parts[3]);
+                continue;
+            }
+
+            if (parts[0].equals("IS")) {
+                String opcode = parts[1];
+                String reg = parts.length > 2 ? parts[2] : "00";
+                String addr = "000";
+                if (line.contains("(S,")) {
+                    int idx = Integer.parseInt(line.substring(line.indexOf("(S,") + 3, line.indexOf(")")));
+                    addr = symtab.get(idx - 1)[1];
+                } else if (line.contains("(L,")) {
+                    int idx = Integer.parseInt(line.substring(line.indexOf("(L,") + 3, line.indexOf(")")));
+                    addr = littab.get(idx - 1)[1];
+                } else if (line.contains("(C,")) {
+                    addr = line.substring(line.indexOf("(C,") + 3, line.indexOf(")"));
+                }
+                System.out.println(opcode + "\t" + reg + "\t" + addr);
+            }
+        }
+        ic.close(); sym.close(); lit.close();
+    }
+}
+
+
+//ic.txt
+(AD,1)(C,100)
+(IS,5) (01) (L,1)
+(IS,1) (02) (S,1)
+(IS,2) (02) (L,2)
+(DL,02),(C,2)
+(AD,2)
+
+//symboltable.txt
+ALPHA 103
+
+
+//literaltable.txt
+5 105
+1 106
+
