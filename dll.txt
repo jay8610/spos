@@ -36,6 +36,8 @@ int sq(int a) {
 
 
 3 - mathlib.h
+#pragma once 
+#ifdef __cplusplus
 
 extern "C"{
     #endif
