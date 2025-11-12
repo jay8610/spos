@@ -1,0 +1,205 @@
+import java.io.*;
+import java.util.*;
+
+class symbol{
+    String name;
+    int address;
+}
+
+class literal{
+    String value;
+    int address;
+}
+
+public class firstpass{
+
+    final int max = 20;
+
+    HashMap<String,Integer>OPTAB = new HashMap<>();
+    HashMap<String,Integer>REGTAB = new HashMap<>();
+    HashMap<String,Integer>CONDTAB = new HashMap<>();
+    HashMap<String,Integer>ADTAB = new HashMap<>();
+
+    symbol[] symboltable = new symbol[max];
+    literal[] literaltable = new literal[max];
+
+    int LC = 0; int symbolcount = 0 ; int literalcount = 0; int poolptr = 0;
+
+    public firstpass(){
+        filltable();
+        for(int i =0; i<max ; i++){
+            symboltable[i]= new symbol();
+            literaltable[i] = new literal();
+        }
+    }
+
+    void filltable(){
+        String[]ops = {"STOP","ADD","SUB","MUL","MOVEM","MOVER","COMP","BC","DIV","READ","PRINT"};
+        for(int i=0;i<ops.length;i++){
+            OPTAB.put(ops[i],i);
+        }
+
+        String[]cond = {"LE","LT","EQ","GE","GT","ANY"};
+        for(int i=0;i<cond.length;i++){
+            CONDTAB.put(cond[i],i+1);
+        }
+
+        ADTAB.put("START",1);
+        ADTAB.put("END",2);
+        ADTAB.put("ORIGIN",3);
+        ADTAB.put("EQ",4);
+        ADTAB.put("LTORG",5);
+
+        REGTAB.put("AREG",01);
+        REGTAB.put("BREG",02);
+        REGTAB.put("CREG",03);
+        REGTAB.put("DREG",04);
+    }
+
+    int findsymbol(String s){
+        for(int i =0;i<symbolcount;i++){
+            if(s.equals(symboltable[i].name)){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void writeline(BufferedWriter out, String txt)throws IOException{
+        out.write(txt);
+        out.newLine();
+    }
+
+    void passONE() throws IOException{
+
+        BufferedReader in = new BufferedReader(new FileReader("input.txt"));
+        BufferedWriter out = new BufferedWriter(new FileWriter("ic.txt"));
+
+        String line;
+
+        while((line=in.readLine())!=null){
+            String[] parts = line.split("[ ,]+");
+            int len = parts.length;
+
+            if(len==2 && ADTAB.containsKey(parts[0])){
+                LC=Integer.parseInt(parts[1]);
+                writeline(out,"(AD,"+ADTAB.get(parts[0])+")"+"(C,"+parts[1]+")");
+                continue;
+            }
+
+            if(len ==1){
+                if(OPTAB.containsKey(parts[0])){
+                    LC++;
+                    writeline(out, "(IS,"+OPTAB.get(parts[0]));
+                }
+                else if(ADTAB.containsKey(parts[0])){
+                    for(int i=poolptr; i<literalcount;i++){
+                        literaltable[i].address = LC++;
+                        poolptr = literalcount;
+                        writeline(out, "(AD,"+ADTAB.get(parts[0])+")");
+                    }
+                }
+                continue;
+            }
+            if(len ==3 &&(parts[1].equals("DC")||parts[1].equals("DS"))){
+                int pos = findsymbol(parts[0]);
+                if(pos == -1){
+                    pos = symbolcount++;
+                    symboltable[pos].name = parts[0];
+                    symboltable[pos].address= LC;
+                }
+                if(parts[1].equals("DS")){
+                    writeline(out, "(DL,02),(C,"+parts[2]+")");
+                    LC+=Integer.parseInt(parts[2]);
+                }
+                if(parts[1].equals("DC")){
+                    writeline(out, "(DL,01),(C,"+parts[2]+")");
+                    LC++;
+                }
+                continue;
+            }
+            if(OPTAB.containsKey(parts[0])){
+            
+                int opcode = OPTAB.get(parts[0]);
+                LC++;
+
+                int regorcond;
+
+                if(parts[1].equals("BC")){
+                    regorcond = CONDTAB.get(parts[1]);
+                }
+                else{
+                    regorcond = REGTAB.get(parts[1]);
+                }
+
+                String operand = parts[2];
+                if(operand.startsWith("='")){
+                    literaltable[literalcount].value=operand.substring(2,operand.length()-1);
+                    literalcount++;
+                    writeline(out,"(IS,"+OPTAB.get(parts[0])+") ("+regorcond+") (L,"+literalcount+")");
+                }
+                else{
+                    int idx = findsymbol(operand);
+                    if(idx == -1){
+                        idx=symbolcount++;
+                        symboltable[idx].name=operand;
+                        writeline(out, "(IS,"+OPTAB.get(parts[0])+") ("+regorcond+") (S,"+(idx+1)+")");
+                    }
+                }
+                continue;
+
+            }
+        }
+        in.close();
+        out.close();
+    }
+
+    void symbolprint(){
+        for(int i=0;i<symbolcount;i++){
+            System.err.println(symboltable[i].name+"\t"+symboltable[i].address);
+        }
+    }
+
+    void litprint(){
+        for(int i=0;i<literalcount;i++){
+            System.err.println(literaltable[i].value+"\t"+literaltable[i].address);
+        }
+    }
+
+    void printfile(String file)throws IOException{
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String s;
+        while((s=br.readLine())!=null){
+            System.out.println(s);
+            
+        }
+        br.close();
+    }
+
+    public static void main(String[] args)throws IOException {
+        firstpass obj = new firstpass();
+        obj.passONE();
+
+         System.out.println("\nSOURCE CODE\n");
+        obj.printfile("input.txt");
+
+        System.out.println("\n\nINTERMEDIATE CODE\n");
+        obj.printfile("ic.txt");
+
+        System.out.println("\n\nSYMBOL TABLE\nSymbol\tAddress\n=================");
+        obj.symbolprint();
+
+        System.out.println("\n\nLITERAL TABLE\nLiteral\tAddress\n=================");
+        obj.litprint();
+    }
+}
+
+START 100
+MOVER AREG,='5'
+ADD BREG,ALPHA
+SUB BREG,='1'
+ALPHA DS 2
+LTORG
+MULT AREG,ALPHA
+END
+
